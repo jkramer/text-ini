@@ -13,22 +13,22 @@ module Text.INI where
 	type INI = [(String, [(String, String)])]
 
 
-	loadINI path = readFile path >>= return . parseINI
+	loadINI path = parseINI `fmap` readFile path
 
 
 	parseINI =
-		fold . parse "" . filter ((/=) 0 . length) . map (trim) . lines
+		fold . parse "" . filter ((/=) 0 . length) . map trim . lines
 
 		where
-			dropSpaces = dropWhile (isSpace)
+			dropSpaces = dropWhile isSpace
 			trim = reverse . dropSpaces . reverse . dropSpaces
 
 			-- Parse a list if INI lines recursively.
 			parse _ [] = []
 			parse section (line:rest) =
 				if ("[" `isPrefixOf` line) && ("]" `isSuffixOf` line)
-					then parse (trim $ sectionName $ line) rest
-					else (section, keyValuePair line) : (parse section rest)
+					then parse (trim $ sectionName line) rest
+					else (section, keyValuePair line) : parse section rest
 
 				where
 					-- Extract the section name from a "[foo]"-like string.
@@ -45,8 +45,8 @@ module Text.INI where
 			fold triplets =
 				map (\ section -> (section, pairs section)) sections
 				where
-					sections = nub $ map (fst) triplets
-					pairs section = map (snd) $ filter ((==) section . fst) triplets
+					sections = nub $ map fst triplets
+					pairs section = map snd $ filter ((==) section . fst) triplets
 
 
 	sections :: INI -> [String]
